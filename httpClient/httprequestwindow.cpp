@@ -138,36 +138,17 @@ void HttpRequestWindow::newRequest()
     QNetworkReply* networkReply = NULL;
     if (cb_method->currentText() == "POST")
     {
-//        QFile inputFile("input.data");
-//        inputFile.open(QIODevice::ReadOnly);
-//        QByteArray data = inputFile.readAll();
 
-        /* Send as form data*/
-        QHttpMultiPart *multiPart = new QHttpMultiPart(QHttpMultiPart::MixedType);
-
-        {
-            QHttpPart dataPart;
-            dataPart.setHeader(QNetworkRequest::ContentTypeHeader, QVariant("multipart/form-data"));
-            dataPart.setHeader(QNetworkRequest::ContentDispositionHeader, QVariant("form-data; name=\"path\""));
-            dataPart.setBody(logPath->text().toLocal8Bit());
-            multiPart->append(dataPart);
-        }
-
-        {
-            QHttpPart dataPart;
-            dataPart.setHeader(QNetworkRequest::ContentTypeHeader, QVariant("multipart/form-data"));
-            dataPart.setHeader(QNetworkRequest::ContentDispositionHeader, QVariant("form-data; name=\"num_lines\""));
-            dataPart.setBody(QString::number(logLength->value()).toLocal8Bit());
-            multiPart->append(dataPart);
-        }
-
+        QString xmldata = "<?xml version=\"1.0\"?>"
+                          "<request_data>"
+                          "<path>%1</path>"
+                          "<num_lines>%2</num_lines>"
+                          "</request_data>";
+        xmldata = xmldata.arg(logPath->text(), QString::number(logLength->value()));
 
         QNetworkRequest request(QUrl(cbUrl->currentText()));
-        //request.setHeader(QNetworkRequest::ContentTypeHeader, "multipart/form-data");
-//        networkReply = nam->post(request, data);
-
-        networkReply = nam->post(request, multiPart);
-        multiPart->setParent(networkReply);
+        request.setHeader(QNetworkRequest::ContentTypeHeader, "application/octet-stream");
+        networkReply = nam->post(request, xmldata.toLocal8Bit());
     }
     else {
         nam->get(QNetworkRequest(QUrl(cbUrl->currentText())));

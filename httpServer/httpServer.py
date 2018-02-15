@@ -16,6 +16,7 @@ Send a POST request::
 from http.server import BaseHTTPRequestHandler, HTTPServer
 import re
 import subprocess
+import xml.etree.cElementTree as ET
 
 def parse_row_data(data):
     data = str(data)
@@ -28,11 +29,23 @@ def parse_row_data(data):
 
     return path, num_lines
 
+def parse_xml_data(data):
+    path = ""
+    num_lines = ""
+    root = ET.fromstring(data)
+    for child in root:
+        if child.tag == "path":
+            path = child.text
+        elif child.tag == "num_lines":
+            num_lines =child.text
+        #print(child.tag, child.text)
+    return path, num_lines
+
 
 def tail(path, num_lines):
     completed_proc = subprocess.run(['tail', path, '-n', num_lines], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     if completed_proc.returncode:
-        return completed_proc.stderr.decode('utf-8')
+        raise Exception(completed_proc.stderr.decode('utf-8'))
     return completed_proc.stdout.decode('utf-8')
 
 def get_log_strings(path, num_lines):
@@ -52,16 +65,16 @@ class S(BaseHTTPRequestHandler):
         self._set_headers()
 
     def do_POST(self):
-        # Doesn't do anything with posted data
+
         request_headers = self.headers
         content_length = int(request_headers['Content-Length'])
         body = self.rfile.read(content_length)
 
         try:
-            path, num_lines = parse_row_data(body)
+            path, num_lines = parse_xml_data(body)
             resp = get_log_strings(path, num_lines)
         except Exception as e:
-            resp = str(e)
+            resp = '<h4><font color=red>' + str(e) + '</font></h4>'
 
         resp = resp.replace('\n', '<br>')
 
